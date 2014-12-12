@@ -66,8 +66,6 @@ void hitNote(int value, byte note) {
     
     MIDI.sendNoteOn(note, velocity, 1);
     MIDI.sendNoteOff(note, 0, 1);
-    
-    delay(5);
   }
 }
 
