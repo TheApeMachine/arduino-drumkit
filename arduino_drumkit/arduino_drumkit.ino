@@ -2,13 +2,16 @@
 
 MIDI_CREATE_DEFAULT_INSTANCE();
 
-#define PIEZOTHRESHOLD 10
+#define SNARETHRESHOLD 10
 
 unsigned long snareInterval       = 2;
 unsigned long previousSnareMillis = 0;
 
 int kickPin  = A0;
 int snarePin = A1;
+
+int kickValue  = 0;
+int snareValue = 0;
 
 // MAPPING FOR ADDICTIVE DRUMS
 byte KICK                  = 36;
@@ -57,22 +60,22 @@ boolean noteReady(unsigned long previousMillis, unsigned long interval) {
 }
 
 void hitNote(int value, byte note) {
-  if(value >= PIEZOTHRESHOLD) {
-    int velocity = value * 3;
-    
-    if(velocity > 127) {
-      velocity = 127;
-    }
-    
-    MIDI.sendNoteOn(note, velocity, 1);
-    MIDI.sendNoteOff(note, 0, 1);
+  int velocity = value * 3;
+  
+  if(velocity > 127) {
+    velocity = 127;
   }
+  
+  MIDI.sendNoteOn(note, velocity, 1);
+  MIDI.sendNoteOff(note, 0, 1);
 }
 
 void loop() {
-  if(noteReady(previousSnareMillis, snareInterval)) {
+  snareValue = analogRead(snarePin);
+  
+  if(snareValue >= SNARETHRESHOLD && noteReady(previousSnareMillis, snareInterval)) {
     previousSnareMillis = millis();
-    hitNote(analogRead(snarePin), SNARE_OPEN_HIT);
+    hitNote(snareValue, SNARE_OPEN_HIT);
   }
 }
 
