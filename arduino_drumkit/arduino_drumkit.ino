@@ -2,27 +2,25 @@
 
 MIDI_CREATE_DEFAULT_INSTANCE();
 
-#define KICKTHRESHOLD 20
+#define KICKTHRESHOLD  20
 #define SNARETHRESHOLD 20
-#define RIDETHRESHOLD 20
+#define HIHATTHRESHOLD  20
 
 unsigned long snareInterval       = 10;
 unsigned long previousSnareMillis = 0;
-
-unsigned long kickInterval       = 10;
-unsigned long previousKickMillis = 0;
-
-unsigned long rideInterval       = 10;
-unsigned long previousRideMillis = 0;
+unsigned long kickInterval        = 10;
+unsigned long previousKickMillis  = 0;
+unsigned long hihatInterval       = 10;
+unsigned long previousHihatMillis = 0;
 
 int kickPin  = A0;
 int snarePin = A1;
-int ridePin  = A2;
+int hihatPin = A2;
 int pedalPin = 8;
 
 int kickValue  = 0;
 int snareValue = 0;
-int rideValue  = 0;
+int hihatValue = 0;
 int pedalValue = 0;
 
 boolean pedalPlayed = true;
@@ -78,13 +76,6 @@ boolean noteReady(unsigned long previousMillis, unsigned long interval) {
 void hitNote(int value, byte note, int multiply, int treshold) {
   int velocity = value - treshold;
   
-//  if(note == HIHAT_CLOSED1_TIP)
-//    velocity = (value / 2) - 20;
-//  else if(note == SNARE_OPEN_HIT)
-//    velocity = (value / 2);
-//  else
-//    velocity = value * multiply;
-//  
   if(velocity > 127)
     velocity = 127;
   else if(velocity < 0)
@@ -97,7 +88,7 @@ void hitNote(int value, byte note, int multiply, int treshold) {
 void loop() {
   kickValue  = analogRead(kickPin);
   snareValue = analogRead(snarePin);
-  rideValue  = analogRead(ridePin);
+  hihatValue = analogRead(hihatPin);
   pedalValue = digitalRead(pedalPin);
   
   if(kickValue >= KICKTHRESHOLD && noteReady(previousKickMillis, kickInterval)) {
@@ -110,18 +101,18 @@ void loop() {
     hitNote(snareValue, SNARE_OPEN_HIT, 1, SNARETHRESHOLD);
   }
 
-  if(rideValue >= RIDETHRESHOLD && noteReady(previousRideMillis, rideInterval)) {
-    previousRideMillis = millis();
+  if(hihatValue >= HIHATTHRESHOLD && noteReady(previousHihatMillis, hihatInterval)) {
+    previousHihatMillis = millis();
     if(pedalValue == LOW) {
-      hitNote(rideValue, HIHAT_CLOSED1_TIP, 1, RIDETHRESHOLD);
+      hitNote(hihatValue, HIHAT_CLOSED1_TIP, 1, HIHATTHRESHOLD);
     }
     else {
-      hitNote(rideValue, HIHAT_OPEN_A, 1, RIDETHRESHOLD);
+      hitNote(hihatValue, HIHAT_OPEN_A, 1, HIHATTHRESHOLD);
     }
   }
   
   if(pedalValue == LOW && pedalPlayed == false) {
-    hitNote(127, HIHAT_PEDAL_CLOSED, 1, RIDETHRESHOLD);
+    hitNote(127, HIHAT_PEDAL_CLOSED, 1, 0);
     pedalPlayed = true;
   }
   
