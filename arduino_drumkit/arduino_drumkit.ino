@@ -2,16 +2,30 @@
 
 MIDI_CREATE_DEFAULT_INSTANCE();
 
-#define SNARETHRESHOLD 10
+#define KICKTHRESHOLD 20
+#define SNARETHRESHOLD 20
+#define RIDETHRESHOLD 20
 
-unsigned long snareInterval       = 2;
+unsigned long snareInterval       = 10;
 unsigned long previousSnareMillis = 0;
+
+unsigned long kickInterval       = 10;
+unsigned long previousKickMillis = 0;
+
+unsigned long rideInterval       = 10;
+unsigned long previousRideMillis = 0;
 
 int kickPin  = A0;
 int snarePin = A1;
+int ridePin  = A2;
+int pedalPin = 8;
 
 int kickValue  = 0;
 int snareValue = 0;
+int rideValue  = 0;
+int pedalValue = 0;
+
+boolean pedalPlayed = true;
 
 // MAPPING FOR ADDICTIVE DRUMS
 byte KICK                  = 36;
@@ -48,6 +62,8 @@ byte TOM4_HIT              = 67;
 void setup() {
   MIDI.begin();
   Serial.begin(115200);
+  pinMode(pedalPin, INPUT);
+  digitalWrite(pedalPin, HIGH);
 }
 
 boolean noteReady(unsigned long previousMillis, unsigned long interval) {
@@ -59,23 +75,57 @@ boolean noteReady(unsigned long previousMillis, unsigned long interval) {
   }
 }
 
-void hitNote(int value, byte note) {
-  int velocity = value * 3;
+void hitNote(int value, byte note, int multiply, int treshold) {
+  int velocity = value - treshold;
   
-  if(velocity > 127) {
+//  if(note == HIHAT_CLOSED1_TIP)
+//    velocity = (value / 2) - 20;
+//  else if(note == SNARE_OPEN_HIT)
+//    velocity = (value / 2);
+//  else
+//    velocity = value * multiply;
+//  
+  if(velocity > 127)
     velocity = 127;
-  }
+  else if(velocity < 0)
+    velocity = 0;
   
   MIDI.sendNoteOn(note, velocity, 1);
   MIDI.sendNoteOff(note, 0, 1);
 }
 
 void loop() {
+  kickValue  = analogRead(kickPin);
   snareValue = analogRead(snarePin);
+  rideValue  = analogRead(ridePin);
+  pedalValue = digitalRead(pedalPin);
+  
+  if(kickValue >= KICKTHRESHOLD && noteReady(previousKickMillis, kickInterval)) {
+    previousKickMillis = millis();
+    hitNote(kickValue, KICK, 5, KICKTHRESHOLD);
+  }
   
   if(snareValue >= SNARETHRESHOLD && noteReady(previousSnareMillis, snareInterval)) {
     previousSnareMillis = millis();
-    hitNote(snareValue, SNARE_OPEN_HIT);
+    hitNote(snareValue, SNARE_OPEN_HIT, 1, SNARETHRESHOLD);
   }
+
+  if(rideValue >= RIDETHRESHOLD && noteReady(previousRideMillis, rideInterval)) {
+    previousRideMillis = millis();
+    if(pedalValue == LOW) {
+      hitNote(rideValue, HIHAT_CLOSED1_TIP, 1, RIDETHRESHOLD);
+    }
+    else {
+      hitNote(rideValue, HIHAT_OPEN_A, 1, RIDETHRESHOLD);
+    }
+  }
+  
+  if(pedalValue == LOW && pedalPlayed == false) {
+    hitNote(127, HIHAT_PEDAL_CLOSED, 1, RIDETHRESHOLD);
+    pedalPlayed = true;
+  }
+  
+  if(pedalValue == HIGH)
+    pedalPlayed = false;
 }
 
